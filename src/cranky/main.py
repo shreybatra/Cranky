@@ -1,70 +1,64 @@
 import json
-import socket
+
+import grpc
+
+from cql import commons_pb2, find_command_pb2, get_command_pb2
+from server import server_service_pb2_grpc
 
 
 class Cranky:
+    _channel = None
+    _stub = None
 
-    _socket = None
+    def __init__(self, host="localhost", port="9876"):
+        self._channel = grpc.insecure_channel("localhost:9876")
+        self._stub = server_service_pb2_grpc.CrankDBStub(self._channel)
 
-    def __init__(self, host="localhost", port=9876):
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.connect((host, port))
+    def set(self, key, value):
+        valType = type(value)
+        data = commons_pb2.DataPacket(key=key)
+        if valType == int:
+            data.s64intVal = value
+            data.dataType = commons_pb2.LONG
+        elif valType == float:
+            data.doubleVal = value
+            data.dataType = commons_pb2.DOUBLE
+        elif valType == str:
+            data.stringVal = value
+            data.dataType = commons_pb2.STRING
+        elif valType == bool:
+            data.doubleVal = value
+            data.dataType = commons_pb2.DOUBLE
+        elif valType == bytes:
+            data.doubleVal = value
+            data.dataType = commons_pb2.BYTES
+        else:
+            try:
+                jsonVal = json.dumps(value)
+            except:
+                raise Exception("unsupported type value")
+            data.jsonVal = jsonVal.encode("utf-8")
+            data.dataType = commons_pb2.JSON
 
-    def _send(self, data):
-        ok = self._socket.send(data.encode("utf-8"))
-        if not ok:
-            raise Exception("Socker connection broken.")
-        response = self._socket.recv(4096)
+        resp = self._stub.Set(data)
+        return resp
+
+    def get(self, key):
+
+        query = get_command_pb2.GetCommandRequest(key=key)
+        response = self._stub.Get(query)
 
         return response
 
-    def set(self, key: str, value):
+    def find(self, query):
+        if type(query) != dict:
+            raise Exception("query object should be of type dict")
 
-        if len(key) > 128:
-            raise Exception("Length of key should be within 128 bytes.")
+        queryObj = json.dumps(query).encode("utf-8")
+        result = []
 
-        try:
-            value = json.dumps(value)
-            if len(value) > 3968:
-                print("Size of value should be within 3968 bytes.")
-            msg = "set {} {}".format(key, value)
-        except:
-            raise Exception("{} Value is not JSON serializable.".format(value))
+        data = find_command_pb2.FindCommandRequest(Query=queryObj)
 
-        response = self._send(msg)
-
-        if response == "Invalid value":
-            raise Exception(response)
-
-        return response.decode("utf-8")
-
-    def get(self, key):
-        msg = "get {}".format(key)
-
-        response = self._send(msg)
-
-        if response == "Not found":
-            return None, False
-
-        return json.loads(response.decode("utf-8")), True
-
-    def find(self, filters={}):
-
-        for key, _ in filters:
-            if type(key) != str:
-                raise Exception("Filter keys can only have String values.")
-
-        msg = "find {}".format(json.dumps(filters))
-        response = self._send(msg)
-
-        return json.loads(response.decode("utf-8")), True
-
-    def delete(self, key):
-        msg = "del {}".format(key)
-
-        response = self._send(msg)
-
-        if response == "Not found":
-            return None, False
-
-        return json.loads(response.decode("utf-8")), True
+        for doc in self._stub.Find(data):
+            result.append(doc)
+        return result

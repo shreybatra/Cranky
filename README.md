@@ -11,30 +11,23 @@ Setup [CrankDB](https://github.com/shreybatra/crankdb) and get it started.
 ```python
 from cranky import Cranky
 
-// setup a new connection
+# setup a new connection
 
-conn = Cranky()
+conn = Cranky(host="localhost", port="9876") # default values
 
-// Cranky follows almost similar API methods as Crank CLI.
+# Cranky follows almost similar API methods as Crank CLI.
 
-// You can set any type of JSON seriable value at any key.
+# You can set any type of JSON seriable value at any key.
 conn.set(key, value)
 
-// Get a key
+# Get a key
 conn.get(key)
-// Returns a tuple (value, found: bool)
+# Returns a DataPacket object with `dataType` attribute and corresponding value field `jsonVal`, `stringVal`, etc.
 
-if found:
-    print(value)
 
-// delete a key
-conn.delete(key)
-// Returns a tuple (value, found: bool)
+# Find multiple JSON documents using Find
+conn.find({key: value}) #Applies a search and returns every key having JSON obj with key=value.
+# Returns a list of DataPackets with dataType and jsonVal attributes.
 
-if found:
-    print("Key successfully deleted.")
-
-// Find multiple JSON documents using Find
-conn.find({key: value}) //Applies a search and returns every key having JSON obj with key=value.
-// Returns a tuple (value, found: bool)
+conn.find({}) # returns all JSON (dict) type key values.
 ```
