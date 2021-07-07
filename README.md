@@ -5,6 +5,9 @@ Cranky is the database driver for CrankDB for python applications.
 # Pre requisites
 Setup [CrankDB](https://github.com/shreybatra/crankdb) and get it started.
 
+# Installation
+`pip install cranky==0.1.0b2`
+(Please pass the beta version specifically.)
 
 # Documentation
 
