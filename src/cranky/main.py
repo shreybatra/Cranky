@@ -28,7 +28,7 @@ class Cranky:
             data.dataType = commons_pb2.STRING
         elif valType == bool:
             data.doubleVal = value
-            data.dataType = commons_pb2.DOUBLE
+            data.dataType = commons_pb2.BOOL
         elif valType == bytes:
             data.doubleVal = value
             data.dataType = commons_pb2.BYTES
